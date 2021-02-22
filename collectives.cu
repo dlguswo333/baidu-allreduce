@@ -349,11 +349,12 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
                 0, MPI_COMM_WORLD, &recv_status);
     }
 
+    seconds=timer.seconds();
+    std::cout <<  "allreduce : " << seconds << '\n';
+
     // Free temporary memory.
     dealloc(buffer);
 
-    seconds=timer.seconds();
-    std::cout <<  "allreduce : " << seconds << '\n';
 }
 
 // The ring allgather. The lengths of the data chunks passed to this function
