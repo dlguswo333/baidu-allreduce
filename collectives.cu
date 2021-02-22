@@ -244,12 +244,14 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
         throw std::runtime_error("MPI_Comm_size failed with an error");
 
     // Check that the lengths given to every process are the same.
+    /* Comment to measure ring-allreduce soley.
     std::vector<size_t> lengths = AllgatherInputLengths(size, length);
     for(size_t other_length : lengths) {
         if(length != other_length) {
             throw std::runtime_error("RingAllreduce received different lengths");
         }
     }
+    */
 
     // Partition the elements of the array into N approximately equal-sized
     // chunks, where N is the MPI size.
