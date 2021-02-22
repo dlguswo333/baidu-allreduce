@@ -1,5 +1,8 @@
 #include "collectives.h"
-#include "timer.h"
+#ifndef TIMER
+	#include "timer.h"
+	#define TIMER
+#endif
 
 #include <mpi.h>
 #include <cuda_runtime.h>

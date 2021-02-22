@@ -9,6 +9,10 @@
 #include <mpi.h>
 
 #include "collectives.h"
+#ifndef TIMER
+	#include "timer.h"
+	#define TIMER
+#endif
 
 struct MPIGlobalState {
     // The CUDA device to run on, or -1 for CPU-only.
@@ -296,6 +300,8 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
     MPI_Request recv_req;
     MPI_Datatype datatype = MPI_FLOAT;
 
+    timer::Timer timer;
+    timer.start();
     // Now start ring. At every step, for every rank, we iterate through
     // segments with wraparound and send and recv from our neighbors and reduce
     // locally. At the i'th iteration, sends segment (rank - i) and receives
@@ -320,7 +326,9 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
 
         reduce(segment_update, buffer, segment_sizes[recv_chunk]);
     }
-
+    float seconds=timer.seconds();
+    std::cout <<  "scatter-reduce : " << seconds << '\n';
+    timer.start();
     // Now start pipelined ring allgather. At every step, for every rank, we
     // iterate through segments with wraparound and send and recv from our
     // neighbors. At the i'th iteration, rank r, sends segment (rank + 1 - i)
@@ -343,6 +351,9 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
 
     // Free temporary memory.
     dealloc(buffer);
+
+    seconds=timer.seconds();
+    std::cout <<  "allreduce : " << seconds << '\n';
 }
 
 // The ring allgather. The lengths of the data chunks passed to this function
