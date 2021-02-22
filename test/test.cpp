@@ -24,6 +24,11 @@ void TestCollectivesCPU(std::vector<size_t>& sizes, std::vector<size_t>& iterati
     if(MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank) != MPI_SUCCESS)
         throw std::runtime_error("MPI_Comm_rank failed with an error");
 
+    char name[MPI_MAX_PROCESSOR_NAME];
+    int tmp;
+    MPI_Get_processor_name(name, &tmp);
+    std::cout << name << '\n';
+
     timer::Timer timer;
     for(size_t i = 0; i < sizes.size(); i++) {
         auto size = sizes[i];

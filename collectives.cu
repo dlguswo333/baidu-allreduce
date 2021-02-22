@@ -326,7 +326,7 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
 
         reduce(segment_update, buffer, segment_sizes[recv_chunk]);
         float seconds=timer.seconds();
-        std::cout <<  "scatter-reduce : " << seconds << '\n';
+        std::cout << "scatter-reduce : " << seconds << '\n';
     }
     //timer.start();
     // Now start pipelined ring allgather. At every step, for every rank, we
