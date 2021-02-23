@@ -248,7 +248,7 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
         throw std::runtime_error("MPI_Comm_size failed with an error");
 
     // Check that the lengths given to every process are the same.
-    /* Comment to measure ring-allreduce soley.
+    /* Comment to measure ring-allreduce solely.
     std::vector<size_t> lengths = AllgatherInputLengths(size, length);
     for(size_t other_length : lengths) {
         if(length != other_length) {
@@ -300,6 +300,7 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
     MPI_Request recv_req;
     MPI_Datatype datatype = MPI_FLOAT;
 
+    timer::Timer timer;
     // Now start ring. At every step, for every rank, we iterate through
     // segments with wraparound and send and recv from our neighbors and reduce
     // locally. At the i'th iteration, sends segment (rank - i) and receives
@@ -310,23 +311,28 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
         float* segment_send = &(output[segment_ends[send_chunk] -
                                    segment_sizes[send_chunk]]);
 
-	timer::Timer timer;
 	timer.start();
+
         MPI_Irecv(buffer, segment_sizes[recv_chunk],
                 datatype, recv_from, 0, MPI_COMM_WORLD, &recv_req);
+
 
         MPI_Send(segment_send, segment_sizes[send_chunk],
                 MPI_FLOAT, send_to, 0, MPI_COMM_WORLD);
 
         float *segment_update = &(output[segment_ends[recv_chunk] -
                                          segment_sizes[recv_chunk]]);
+        float seconds=timer.seconds();
+        std::cout << "scatter-reduce MPI_Send : " << seconds << '\n';
 
+	timer.start();
         // Wait for recv to complete before reduction
         MPI_Wait(&recv_req, &recv_status);
 
         reduce(segment_update, buffer, segment_sizes[recv_chunk]);
-        float seconds=timer.seconds();
-        std::cout << "scatter-reduce : " << seconds << '\n';
+
+        seconds=timer.seconds();
+        std::cout << "scatter-reduce MPI_Wait : " << seconds << '\n';
     }
     //timer.start();
     // Now start pipelined ring allgather. At every step, for every rank, we

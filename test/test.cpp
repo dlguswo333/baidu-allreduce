@@ -167,7 +167,7 @@ int main(int argc, char** argv) {
 
     // Buffer sizes used for tests.
     std::vector<size_t> buffer_sizes = {
-        536870912
+        536870912 // 512 MB
     };
 
     // Number of iterations to run for each buffer size.
