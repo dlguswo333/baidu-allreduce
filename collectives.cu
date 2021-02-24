@@ -301,43 +301,49 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
     MPI_Datatype datatype = MPI_FLOAT;
 
     timer::Timer timer;
-    float seconds;
+    float interval1, interval2, interval3;
     // Now start ring. At every step, for every rank, we iterate through
     // segments with wraparound and send and recv from our neighbors and reduce
     // locally. At the i'th iteration, sends segment (rank - i) and receives
     // segment (rank - i - 1).
-    timer.start();
     for (int i = 0; i < size - 1; i++) {
         int recv_chunk = (rank - i - 1 + size) % size;
         int send_chunk = (rank - i + size) % size;
         float* segment_send = &(output[segment_ends[send_chunk] -
                                    segment_sizes[send_chunk]]);
 
+	timer.start();
 
         MPI_Irecv(buffer, segment_sizes[recv_chunk],
                 datatype, recv_from, 0, MPI_COMM_WORLD, &recv_req);
 
+	interval1=timer.seconds();
+	timer.start();
 
         MPI_Send(segment_send, segment_sizes[send_chunk],
                 MPI_FLOAT, send_to, 0, MPI_COMM_WORLD);
-
+	
+	interval2=timer.seconds();
+	timer.start();
+	
         float *segment_update = &(output[segment_ends[recv_chunk] -
                                          segment_sizes[recv_chunk]]);
 
         // Wait for recv to complete before reduction
         MPI_Wait(&recv_req, &recv_status);
 
+	interval3=timer.seconds();
+
         reduce(segment_update, buffer, segment_sizes[recv_chunk]);
 
     }
-    seconds=timer.seconds();
-    std::cout << "scatter-reduce: " << seconds << '\n';
-    //timer.start();
+    std::cout << "MPI_Irecv: " << interval1 << '\n';
+    std::cout << "MPI_Send: " << interval2 << '\n';
+    std::cout << "MPI_Wait: " << interval3 << '\n';
     // Now start pipelined ring allgather. At every step, for every rank, we
     // iterate through segments with wraparound and send and recv from our
     // neighbors. At the i'th iteration, rank r, sends segment (rank + 1 - i)
     // and receives segment (rank - i).
-    timer.start();
     for (size_t i = 0; i < size_t(size - 1); ++i) {
         int send_chunk = (rank - i + 1 + size) % size;
         int recv_chunk = (rank - i + size) % size;
@@ -354,11 +360,6 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
                 0, MPI_COMM_WORLD, &recv_status);
 
     }
-
-    seconds=timer.seconds();
-    std::cout << "allgather: " << seconds << '\n';
-    //seconds=timer.seconds();
-    //std::cout <<  "allreduce : " << seconds << '\n';
 
     // Free temporary memory.
     dealloc(buffer);
