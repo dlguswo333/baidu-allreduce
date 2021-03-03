@@ -315,9 +315,10 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
                                    segment_sizes[send_chunk]]);
 
 	    timer.start();
-        #pragma omp parallel num_threads(2)
+        #pragma omp parallel for num_threads(2)
+        for(int j=0;j<2;++j)
         {
-            if(omp_get_thread_num()==0){
+            if(j==0){
                 MPI_Send(segment_send, segment_sizes[send_chunk],
                     datatype, send_to, send_to, MPI_COMM_WORLD);
             }
