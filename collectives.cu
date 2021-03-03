@@ -314,7 +314,7 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
         float* segment_send = &(output[segment_ends[send_chunk] -
                                    segment_sizes[send_chunk]]);
 
-	    //timer.start();
+	    timer.start();
         #pragma omp parallel num_threads(2)
         {
             if(omp_get_thread_num()==0){
