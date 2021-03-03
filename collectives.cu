@@ -303,7 +303,7 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
     //MPI_Request recv_req;
     MPI_Datatype datatype = MPI_FLOAT;
     timer::Timer timer;
-    //float interval1=0;//, interval2=0, interval3=0;
+    float interval1=0;//, interval2=0, interval3=0;
     // Now start ring. At every step, for every rank, we iterate through
     // segments with wraparound and send and recv from our neighbors and reduce
     // locally. At the i'th iteration, sends segment (rank - i) and receives
