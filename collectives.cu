@@ -318,12 +318,12 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
         #pragma omp parallel num_threads(2)
         {
             if(omp_get_thread_num()==0){
-                MPI_Recv(buffer, segment_sizes[recv_chunk],
-                    datatype, recv_from, 0, MPI_COMM_WORLD, &recv_status);
+                MPI_Send(segment_send, segment_sizes[send_chunk],
+                    datatype, send_to, send_to, MPI_COMM_WORLD);
             }
             else{
-                MPI_Send(segment_send, segment_sizes[send_chunk],
-                    datatype, send_to, 0, MPI_COMM_WORLD);
+                MPI_Recv(buffer, segment_sizes[recv_chunk],
+                    datatype, recv_from, rank, MPI_COMM_WORLD, &recv_status);
             }
         }
 	
@@ -363,11 +363,11 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
             */
             if(omp_get_thread_num()==0){
                 MPI_Send(segment_send, segment_sizes[send_chunk],
-                    datatype, send_to, 0, MPI_COMM_WORLD);
+                    datatype, send_to, send_to, MPI_COMM_WORLD);
             }
             else{
                 MPI_Recv(segment_recv, segment_sizes[recv_chunk],
-                    datatype, recv_from, 0, MPI_COMM_WORLD, &recv_status);
+                    datatype, recv_from, rank, MPI_COMM_WORLD, &recv_status);
             }
         }
 
