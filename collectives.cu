@@ -318,12 +318,10 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
         #pragma omp parallel num_threads(2)
         {
             if(omp_get_thread_num()==0){
-                std::cout << "Recv\n";
                 MPI_Recv(buffer, segment_sizes[recv_chunk],
                     datatype, recv_from, 0, MPI_COMM_WORLD, &recv_status);
             }
             else{
-                std::cout << "Send\n";
                 MPI_Send(segment_send, segment_sizes[send_chunk],
                     datatype, send_to, 0, MPI_COMM_WORLD);
             }
@@ -334,12 +332,12 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
                                          segment_sizes[recv_chunk]]);
 
 
-	    //interval1+=timer.seconds();
+	    interval1+=timer.seconds();
 
         reduce(segment_update, buffer, segment_sizes[recv_chunk]);
 
     }
-    //std::cout << "scatter-reduce : " << interval1/(size-1) << '\n';
+    std::cout << "scatter-reduce : " << interval1/(size-1) << '\n';
 
     // Now start pipelined ring allgather. At every step, for every rank, we
     // iterate through segments with wraparound and send and recv from our
@@ -377,7 +375,6 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
 
     // Free temporary memory.
     dealloc(buffer);
-
 }
 
 // The ring allgather. The lengths of the data chunks passed to this function
