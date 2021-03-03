@@ -13,6 +13,7 @@
 	#include "timer.h"
 	#define TIMER
 #endif
+#include <omp.h>
 
 struct MPIGlobalState {
     // The CUDA device to run on, or -1 for CPU-only.
@@ -297,11 +298,11 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
     const size_t send_to = (rank + 1) % size;
 
     MPI_Status recv_status;
-    MPI_Request recv_req;
+    //MPI_Request recv_req;
     MPI_Datatype datatype = MPI_FLOAT;
 
     timer::Timer timer;
-    float interval1=0;//, interval2=0, interval3=0;
+    //float interval1=0;//, interval2=0, interval3=0;
     // Now start ring. At every step, for every rank, we iterate through
     // segments with wraparound and send and recv from our neighbors and reduce
     // locally. At the i'th iteration, sends segment (rank - i) and receives
@@ -312,28 +313,31 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
         float* segment_send = &(output[segment_ends[send_chunk] -
                                    segment_sizes[send_chunk]]);
 
-	timer.start();
-
-        MPI_Irecv(buffer, segment_sizes[recv_chunk],
-                datatype, recv_from, 0, MPI_COMM_WORLD, &recv_req);
-
-
-        MPI_Send(segment_send, segment_sizes[send_chunk],
-                MPI_FLOAT, send_to, 0, MPI_COMM_WORLD);
+	    //timer.start();
+        #pragma omp parallel num_threads(2)
+        {
+            if(omp_get_thread_num()==0){
+                MPI_Recv(buffer, segment_sizes[recv_chunk],
+                    datatype, recv_from, 0, MPI_COMM_WORLD, &recv_status);
+            }
+            else{
+                MPI_Send(segment_send, segment_sizes[send_chunk],
+                    MPI_FLOAT, send_to, 0, MPI_COMM_WORLD);
+            }
+        }
 	
 	
         float *segment_update = &(output[segment_ends[recv_chunk] -
                                          segment_sizes[recv_chunk]]);
 
-        // Wait for recv to complete before reduction
-        MPI_Wait(&recv_req, &recv_status);
 
-	interval1+=timer.seconds();
+	    //interval1+=timer.seconds();
 
         reduce(segment_update, buffer, segment_sizes[recv_chunk]);
 
     }
-    std::cout << "scatter-reduce : " << interval1/(size-1) << '\n';
+    //std::cout << "scatter-reduce : " << interval1/(size-1) << '\n';
+
     // Now start pipelined ring allgather. At every step, for every rank, we
     // iterate through segments with wraparound and send and recv from our
     // neighbors. At the i'th iteration, rank r, sends segment (rank + 1 - i)
@@ -348,10 +352,23 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
         // Segment to recv - at every iteration we receive segment (r-i)
         float* segment_recv = &(output[segment_ends[recv_chunk] -
                                        segment_sizes[recv_chunk]]);
-        MPI_Sendrecv(segment_send, segment_sizes[send_chunk],
-                datatype, send_to, 0, segment_recv,
-                segment_sizes[recv_chunk], datatype, recv_from,
-                0, MPI_COMM_WORLD, &recv_status);
+        #pragma omp parallel num_threads(2)
+        {
+            /*
+            MPI_Sendrecv(segment_send, segment_sizes[send_chunk],
+                    datatype, send_to, 0, segment_recv,
+                    segment_sizes[recv_chunk], datatype, recv_from,
+                    0, MPI_COMM_WORLD, &recv_status);
+            */
+            if(omp_get_thread_num()==0){
+                MPI_Send(segment_send, segment_sizes[send_chunk],
+                    datatype, send_to, 0, MPI_COMM_WORLD);
+            }
+            else{
+                MPI_Recv(segment_recv, segment_sizes[recv_chunk],
+                    datatype, recv_from, 0, MPI_COMM_WORLD, &recv_status);
+            }
+        }
 
     }
 

@@ -12,7 +12,7 @@ CC:=mpic++
 NVCC:=nvcc
 MPI_ROOT=/usr/local/mpi
 CUDA_ROOT=/usr/local/cuda
-LDFLAGS:=-L$(CUDA_ROOT)/lib64 -L$(MPI_ROOT)/lib -lcudart -lmpi -DOMPI_SKIP_MPICXX=
+LDFLAGS:=-L$(CUDA_ROOT)/lib64 -fopenmp -L$(MPI_ROOT)/lib -lcudart -lmpi -DOMPI_SKIP_MPICXX=
 CFLAGS:=-std=c++11 -I$(MPI_ROOT)/include -I. -I$(CUDA_ROOT)/include -DOMPI_SKIP_MPICXX=
 EXE_NAME:=allreduce-test
 SRC:=$(wildcard *.cpp test/*.cpp)
