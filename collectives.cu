@@ -299,7 +299,7 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
     // Send to your right neighbor with wrap-around.
     const size_t send_to = (rank + 1) % size;
 
-    MPI_Status recv_status;
+    //MPI_Status recv_status;
     //MPI_Request recv_req;
     MPI_Datatype datatype = MPI_FLOAT;
     timer::Timer timer;
@@ -315,16 +315,17 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
                                    segment_sizes[send_chunk]]);
 
 	    timer.start();
-        #pragma omp parallel for num_threads(2)
-        for(int j=0;j<2;++j)
+        #pragma omp parallel num_threads(2)
         {
-            if(j==0){
+            if(omp_get_thread_num()==0){
                 MPI_Send(segment_send, segment_sizes[send_chunk],
                     datatype, send_to, send_to, MPI_COMM_WORLD);
+                std::cout << rank << "Send" << std::endl;
             }
             else{
                 MPI_Recv(buffer, segment_sizes[recv_chunk],
-                    datatype, recv_from, rank, MPI_COMM_WORLD, &recv_status);
+                    datatype, recv_from, rank, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                std::cout << rank << "Recv" << std::endl;
             }
         }
 	
@@ -368,7 +369,7 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
             }
             else{
                 MPI_Recv(segment_recv, segment_sizes[recv_chunk],
-                    datatype, recv_from, rank, MPI_COMM_WORLD, &recv_status);
+                    datatype, recv_from, rank, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             }
         }
 
