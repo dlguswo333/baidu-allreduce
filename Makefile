@@ -12,7 +12,7 @@ CC:=mpic++
 NVCC:=nvcc
 MPI_ROOT=/usr/local/mpi
 CUDA_ROOT=/usr/local/cuda
-LDFLAGS:=-L$(CUDA_ROOT)/lib64 -fopenmp -L$(MPI_ROOT)/lib -lcudart -lmpi -DOMPI_SKIP_MPICXX=
+LDFLAGS:=-L$(CUDA_ROOT)/lib64 -L$(MPI_ROOT)/lib -lcudart -lmpi -DOMPI_SKIP_MPICXX=
 CFLAGS:=-std=c++11 -I$(MPI_ROOT)/include -I. -I$(CUDA_ROOT)/include -DOMPI_SKIP_MPICXX=
 EXE_NAME:=allreduce-test
 SRC:=$(wildcard *.cpp test/*.cpp)
@@ -22,13 +22,13 @@ OBJS:=$(SRC:.cpp=.o) $(CU_SRC:.cu=.o)
 all: $(EXE_NAME)
 
 %.o: %.cpp
-	$(CC) -c $(CFLAGS) $< -o $@
+	$(CC) -c $(CFLAGS) -fopenmp $< -o $@
 
 %.o: %.cu
-	$(NVCC) -c $(CFLAGS) $< -o $@
+	$(NVCC) -c $(CFLAGS) -Xcompiler -fopenmp $< -o $@
 
 $(EXE_NAME): $(OBJS)
-	$(CC) -o $(EXE_NAME) $(LDFLAGS) $^ $(LDFLAGS)
+	$(CC) -o $(EXE_NAME) $(LDFLAGS) -fopenmp $^ $(LDFLAGS)
 
 test: $(EXE_NAME)
 	$(EXE_NAME)

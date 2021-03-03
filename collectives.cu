@@ -39,8 +39,9 @@ static MPIGlobalState global_state;
 void InitCollectives(int device) {
     if(device < 0) {
         // CPU-only initialization.
-        int mpi_error = MPI_Init(NULL, NULL);
-        if(mpi_error != MPI_SUCCESS) {
+        int provided;
+        int mpi_error = MPI_Init_thread(NULL, NULL, MPI_THREAD_MULTIPLE, &provided);
+        if(mpi_error != MPI_SUCCESS || provided<MPI_THREAD_MULTIPLE) {
             throw std::runtime_error("MPI_Init failed with an error");
         }
 
@@ -73,8 +74,9 @@ void InitCollectives(int device) {
             throw std::runtime_error("cudaStreamCreate failed with an error");
         }
 
-        int mpi_error = MPI_Init(NULL, NULL);
-        if(mpi_error != MPI_SUCCESS) {
+        int provided;
+        int mpi_error = MPI_Init_thread(NULL, NULL, MPI_THREAD_MULTIPLE, &provided);
+        if(mpi_error != MPI_SUCCESS || provided<MPI_THREAD_MULTIPLE) {
             throw std::runtime_error("MPI_Init failed with an error");
         }
 
@@ -300,7 +302,6 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
     MPI_Status recv_status;
     //MPI_Request recv_req;
     MPI_Datatype datatype = MPI_FLOAT;
-
     timer::Timer timer;
     //float interval1=0;//, interval2=0, interval3=0;
     // Now start ring. At every step, for every rank, we iterate through
@@ -317,14 +318,14 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
         #pragma omp parallel num_threads(2)
         {
             if(omp_get_thread_num()==0){
+                std::cout << "Recv\n";
                 MPI_Recv(buffer, segment_sizes[recv_chunk],
                     datatype, recv_from, 0, MPI_COMM_WORLD, &recv_status);
-                std::cout << "Recv\n";
             }
             else{
+                std::cout << "Send\n";
                 MPI_Send(segment_send, segment_sizes[send_chunk],
                     datatype, send_to, 0, MPI_COMM_WORLD);
-                std::cout << "Send\n";
             }
         }
 	
