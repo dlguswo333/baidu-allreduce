@@ -320,12 +320,12 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
             if(omp_get_thread_num()==0){
                 MPI_Send(segment_send, segment_sizes[send_chunk],
                     datatype, send_to, send_to, MPI_COMM_WORLD);
-                std::cout << rank << "Send" << std::endl;
+                //std::cout << rank << "Send" << std::endl;
             }
             else{
                 MPI_Recv(buffer, segment_sizes[recv_chunk],
                     datatype, recv_from, rank, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                std::cout << rank << "Recv" << std::endl;
+                //std::cout << rank << "Recv" << std::endl;
             }
         }
 	
