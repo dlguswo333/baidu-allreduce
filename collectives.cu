@@ -333,7 +333,7 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
         reduce(segment_update, buffer, segment_sizes[recv_chunk]);
 
     }
-    std::cout << "scatter-reduce : " << interval1/(size-1) << '\n';
+    //std::cout << "scatter-reduce : " << interval1/(size-1) << '\n';
     // Now start pipelined ring allgather. At every step, for every rank, we
     // iterate through segments with wraparound and send and recv from our
     // neighbors. At the i'th iteration, rank r, sends segment (rank + 1 - i)
