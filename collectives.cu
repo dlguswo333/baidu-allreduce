@@ -312,9 +312,6 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
         float* segment_send = &(output[segment_ends[send_chunk] -
                                    segment_sizes[send_chunk]]);
 
-		std::cout.setf(std::ios::fixed);
-		std::cout.precision(7);
-        
 		timer.start();
 
         MPI_Irecv(buffer, segment_sizes[recv_chunk],
@@ -324,8 +321,6 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
         MPI_Send(segment_send, segment_sizes[send_chunk],
                 MPI_FLOAT, send_to, 0, MPI_COMM_WORLD);
 	
-		auto tt=timer.absolute();
-		std::cout << rank << " Sent " << tt << std::endl;
 
         float *segment_update = &(output[segment_ends[recv_chunk] -
                                          segment_sizes[recv_chunk]]);
@@ -333,8 +328,8 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
         // Wait for recv to complete before reduction
         MPI_Wait(&recv_req, &recv_status);
 		
-		tt=timer.absolute();
-		std::cout << rank << " Received " << tt << std::endl;	
+		auto tt=timer.seconds();
+		std::cout << rank << " " << tt << std::endl;	
 
         //interval1+=timer.seconds();
 
