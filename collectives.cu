@@ -313,6 +313,7 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
         float* segment_send = &(output[segment_ends[send_chunk] -
                                    segment_sizes[send_chunk]]);
 
+	MPI_Barrier(MPI_COMM_WORLD);
         timer.start();
 
         MPI_Irecv(buffer, segment_sizes[recv_chunk],
