@@ -322,7 +322,7 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
         std::cout << rank << " Irecv " << timer.seconds() << std::endl;
         timer.start();
 
-        MPI_Send(segment_send, segment_sizes[send_chunk],
+        MPI_Ssend(segment_send, segment_sizes[send_chunk],
                 MPI_FLOAT, send_to, 0, MPI_COMM_WORLD);
 	
         std::cout << rank << " send " << timer.seconds() << std::endl;
