@@ -303,6 +303,7 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
     timer::Timer timer;
     std::cout.setf(std::ios::fixed);
     std::cout.precision(7);
+    timer.start();
     // Now start ring. At every step, for every rank, we iterate through
     // segments with wraparound and send and recv from our neighbors and reduce
     // locally. At the i'th iteration, sends segment (rank - i) and receives
@@ -313,20 +314,14 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
         float* segment_send = &(output[segment_ends[send_chunk] -
                                    segment_sizes[send_chunk]]);
 
-	MPI_Barrier(MPI_COMM_WORLD);
-        timer.start();
 
         MPI_Irecv(buffer, segment_sizes[recv_chunk],
                 datatype, recv_from, 0, MPI_COMM_WORLD, &recv_req);
 
-        std::cout << rank << " Irecv " << timer.seconds() << std::endl;
-        timer.start();
 
         MPI_Ssend(segment_send, segment_sizes[send_chunk],
                 MPI_FLOAT, send_to, 0, MPI_COMM_WORLD);
 	
-        std::cout << rank << " send " << timer.seconds() << std::endl;
-        timer.start();
 
         float *segment_update = &(output[segment_ends[recv_chunk] -
                                          segment_sizes[recv_chunk]]);
@@ -334,13 +329,13 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
         // Wait for recv to complete before reduction
         MPI_Wait(&recv_req, &recv_status);
 		
-        std::cout << rank << " wait " << timer.seconds() << std::endl;
 
         //interval1+=timer.seconds();
 
         reduce(segment_update, buffer, segment_sizes[recv_chunk]);
 
     }
+    std::cout << rank << " scatter-reduce " << timer.seconds() << std::endl;
     //std::cout << "scatter-reduce : " << interval1/(size-1) << '\n';
     // Now start pipelined ring allgather. At every step, for every rank, we
     // iterate through segments with wraparound and send and recv from our
