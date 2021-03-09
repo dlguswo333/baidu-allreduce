@@ -323,7 +323,7 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
 	t1+=timer.seconds();
 	timer.start();
 
-        MPI_Ssend(segment_send, segment_sizes[send_chunk],
+        MPI_Send(segment_send, segment_sizes[send_chunk],
                 MPI_FLOAT, send_to, 0, MPI_COMM_WORLD);
 	
 	t2+=timer.seconds();
