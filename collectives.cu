@@ -314,6 +314,8 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
     // segment (rank - i - 1).
     timer::Timer t;
     float t1=0;
+    std::cout.setf(std::ios::fixed);
+    std::cout.precision(7);
     MPI_Barrier(MPI_COMM_WORLD);
     t.start();
     for (int i = 0; i < size - 1; i++) {
