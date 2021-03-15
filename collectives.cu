@@ -24,6 +24,9 @@ struct MPIGlobalState {
 
     // Whether the global state (and MPI) has been initialized.
     bool initialized = false;
+
+    // Duplicates of MPI_COMM_WORLDS.
+    MPI_Comm comms[2];
 };
 
 // MPI relies on global state for most of its internal operations, so we cannot
@@ -250,6 +253,9 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
     if(mpi_error != MPI_SUCCESS)
         throw std::runtime_error("MPI_Comm_size failed with an error");
 
+    MPI_Comm_dup(MPI_COMM_WORLD, &global_state.comms[0]);
+    MPI_Comm_dup(MPI_COMM_WORLD, &global_state.comms[1]);
+
     // Check that the lengths given to every process are the same.
     /* Comment to measure ring-allreduce solely.
     std::vector<size_t> lengths = AllgatherInputLengths(size, length);
@@ -299,83 +305,75 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
     // Send to your right neighbor with wrap-around.
     const size_t send_to = (rank + 1) % size;
 
-    //MPI_Status recv_status;
+    MPI_Status recv_status;
     //MPI_Request recv_req;
     MPI_Datatype datatype = MPI_FLOAT;
     // Now start ring. At every step, for every rank, we iterate through
     // segments with wraparound and send and recv from our neighbors and reduce
     // locally. At the i'th iteration, sends segment (rank - i) and receives
     // segment (rank - i - 1).
+    timer::Timer t;
+    float t1=0;
+    MPI_Barrier(MPI_COMM_WORLD);
+    t.start();
     for (int i = 0; i < size - 1; i++) {
-        int recv_chunk = (rank - i - 1 + size) % size;
-        int send_chunk = (rank - i + size) % size;
-        float* segment_send = &(output[segment_ends[send_chunk] -
-                                   segment_sizes[send_chunk]]);
-
         #pragma omp parallel num_threads(2)
         {
-            timer::Timer t;
-            t.start();
             if(omp_get_thread_num()==0){
+		int send_chunk = (rank - i + size) % size;
+		float* segment_send = &(output[segment_ends[send_chunk] -
+		   segment_sizes[send_chunk]]);
                 MPI_Send(segment_send, segment_sizes[send_chunk],
-                    datatype, send_to, send_to, MPI_COMM_WORLD);
-                auto tt=t.absolute();
-                std::cout.setf(std::ios::fixed);
-                std::cout.precision(7);
-                std::cout << rank << " Sent " << tt << std::endl;
+                    datatype, send_to, send_to, global_state.comms[send_to%2]);
             }
             else{
+		int recv_chunk = (rank - i - 1 + size) % size;
                 MPI_Recv(buffer, segment_sizes[recv_chunk],
-                    datatype, recv_from, rank, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                auto tt=t.absolute();
-                std::cout.setf(std::ios::fixed);
-                std::cout.precision(7);
-                std::cout << rank << " Received " << tt << std::endl;
+                    datatype, recv_from, rank, global_state.comms[rank%2], &recv_status);
+		float *segment_update = &(output[segment_ends[recv_chunk] -
+		    segment_sizes[recv_chunk]]);
+		reduce(segment_update, buffer, segment_sizes[recv_chunk]);
             }
         }
-	
-	
-        float *segment_update = &(output[segment_ends[recv_chunk] -
-                                         segment_sizes[recv_chunk]]);
-
-
-        reduce(segment_update, buffer, segment_sizes[recv_chunk]);
-
     }
-    //std::cout << "scatter-reduce : " << interval1/(size-1) << '\n';
+    MPI_Barrier(MPI_COMM_WORLD);
+    t1=t.seconds();
+    if(rank==0){
+	std::cout << "scatter-reduce " << t1 << std::endl;
+    }
 
     // Now start pipelined ring allgather. At every step, for every rank, we
     // iterate through segments with wraparound and send and recv from our
     // neighbors. At the i'th iteration, rank r, sends segment (rank + 1 - i)
     // and receives segment (rank - i).
+    MPI_Barrier(MPI_COMM_WORLD);
+    t.start();
     for (size_t i = 0; i < size_t(size - 1); ++i) {
-        int send_chunk = (rank - i + 1 + size) % size;
-        int recv_chunk = (rank - i + size) % size;
-        // Segment to send - at every iteration we send segment (r+1-i)
-        float* segment_send = &(output[segment_ends[send_chunk] -
-                                       segment_sizes[send_chunk]]);
-
-        // Segment to recv - at every iteration we receive segment (r-i)
-        float* segment_recv = &(output[segment_ends[recv_chunk] -
-                                       segment_sizes[recv_chunk]]);
         #pragma omp parallel num_threads(2)
         {
-            /*
-            MPI_Sendrecv(segment_send, segment_sizes[send_chunk],
-                    datatype, send_to, 0, segment_recv,
-                    segment_sizes[recv_chunk], datatype, recv_from,
-                    0, MPI_COMM_WORLD, &recv_status);
-            */
             if(omp_get_thread_num()==0){
+		// Segment to send - at every iteration we send segment (r+1-i)
+		int send_chunk = (rank - i + 1 + size) % size;
+		float* segment_send = &(output[segment_ends[send_chunk] -
+		    segment_sizes[send_chunk]]);
+
                 MPI_Send(segment_send, segment_sizes[send_chunk],
-                    datatype, send_to, send_to, MPI_COMM_WORLD);
+                    datatype, send_to, send_to, global_state.comms[send_to%2]);
             }
             else{
+		// Segment to recv - at every iteration we receive segment (r-i)
+		int recv_chunk = (rank - i + size) % size;
+		float* segment_recv = &(output[segment_ends[recv_chunk] -
+		    segment_sizes[recv_chunk]]);
                 MPI_Recv(segment_recv, segment_sizes[recv_chunk],
-                    datatype, recv_from, rank, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                    datatype, recv_from, rank, global_state.comms[rank%2], &recv_status);
             }
         }
-
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
+    t1=t.seconds();
+    if(rank==0){
+	std::cout << "allgather " << t1 << std::endl;
     }
 
     // Free temporary memory.
