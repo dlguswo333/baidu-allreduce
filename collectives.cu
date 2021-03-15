@@ -300,12 +300,12 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
     MPI_Request recv_req;
     MPI_Datatype datatype = MPI_FLOAT;
 
-    timer::Timer timer;
+    timer::Timer t;
     float t1=0;
     std::cout.setf(std::ios::fixed);
     std::cout.precision(7);
     MPI_Barrier(MPI_COMM_WORLD);
-    timer.start();
+    t.start();
     // Now start ring. At every step, for every rank, we iterate through
     // segments with wraparound and send and recv from our neighbors and reduce
     // locally. At the i'th iteration, sends segment (rank - i) and receives
@@ -336,7 +336,7 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
 
     }
     MPI_Barrier(MPI_COMM_WORLD);
-    t1=timer.seconds();
+    t1=t.seconds();
     if(rank==0){
 	std::cout << "scatter-reduce " << t1 << std::endl;
     }
@@ -345,7 +345,7 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
     // neighbors. At the i'th iteration, rank r, sends segment (rank + 1 - i)
     // and receives segment (rank - i).
     MPI_Barrier(MPI_COMM_WORLD);
-    timer.start();
+    t.start();
     for (size_t i = 0; i < size_t(size - 1); ++i) {
         int send_chunk = (rank - i + 1 + size) % size;
         int recv_chunk = (rank - i + size) % size;
@@ -363,7 +363,7 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
 
     }
     MPI_Barrier(MPI_COMM_WORLD);
-    t1=timer.seconds();
+    t1=t.seconds();
     if(rank==0){
 	std::cout << "allgather " << t1 << std::endl;
     }
