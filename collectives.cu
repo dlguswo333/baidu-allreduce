@@ -26,7 +26,7 @@ struct MPIGlobalState {
     bool initialized = false;
 
     // Duplicates of MPI_COMM_WORLDS.
-    MPI_Comm comms[2];
+    std::vector<MPI_Comm> comms;
 };
 
 // MPI relies on global state for most of its internal operations, so we cannot
@@ -253,8 +253,10 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
     if(mpi_error != MPI_SUCCESS)
         throw std::runtime_error("MPI_Comm_size failed with an error");
 
-    MPI_Comm_dup(MPI_COMM_WORLD, &global_state.comms[0]);
-    MPI_Comm_dup(MPI_COMM_WORLD, &global_state.comms[1]);
+    global_state.comms.resize(size);
+    for(int i=0;i<size;++i){
+	MPI_Comm_dup(MPI_COMM_WORLD, &global_state.comms[i]);
+    }
 
     // Check that the lengths given to every process are the same.
     /* Comment to measure ring-allreduce solely.
@@ -326,12 +328,12 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
 		float* segment_send = &(output[segment_ends[send_chunk] -
 		   segment_sizes[send_chunk]]);
                 MPI_Send(segment_send, segment_sizes[send_chunk],
-                    datatype, send_to, send_to, global_state.comms[send_to%2]);
+                    datatype, send_to, send_to, global_state.comms[rank]);
             }
             else{
 		int recv_chunk = (rank - i - 1 + size) % size;
                 MPI_Recv(buffer, segment_sizes[recv_chunk],
-                    datatype, recv_from, rank, global_state.comms[rank%2], &recv_status);
+                    datatype, recv_from, rank, global_state.comms[(rank-1+size)%size], &recv_status);
 		float *segment_update = &(output[segment_ends[recv_chunk] -
 		    segment_sizes[recv_chunk]]);
 		reduce(segment_update, buffer, segment_sizes[recv_chunk]);
@@ -360,7 +362,7 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
 		    segment_sizes[send_chunk]]);
 
                 MPI_Send(segment_send, segment_sizes[send_chunk],
-                    datatype, send_to, send_to, global_state.comms[send_to%2]);
+                    datatype, send_to, send_to, global_state.comms[rank]);
             }
             else{
 		// Segment to recv - at every iteration we receive segment (r-i)
@@ -368,7 +370,7 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
 		float* segment_recv = &(output[segment_ends[recv_chunk] -
 		    segment_sizes[recv_chunk]]);
                 MPI_Recv(segment_recv, segment_sizes[recv_chunk],
-                    datatype, recv_from, rank, global_state.comms[rank%2], &recv_status);
+                    datatype, recv_from, rank, global_state.comms[(rank-1+size)%size], &recv_status);
             }
         }
     }
