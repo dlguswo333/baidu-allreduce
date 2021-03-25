@@ -253,8 +253,8 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
     if(mpi_error != MPI_SUCCESS)
         throw std::runtime_error("MPI_Comm_size failed with an error");
 
-    global_state.comms.resize(size);
-    for(int i=0;i<size;++i){
+    global_state.comms.resize(2);
+    for(int i=0;i<2;++i){
 	MPI_Comm_dup(MPI_COMM_WORLD, &global_state.comms[i]);
     }
 
@@ -323,21 +323,21 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
     for (int i = 0; i < size - 1; i++) {
         #pragma omp parallel num_threads(2)
         {
-            if(omp_get_thread_num()==0){
+	    if((rank%2==0 && omp_get_thread_num()==0) || (rank%2==1 && omp_get_thread_num()==1)){
 		int send_chunk = (rank - i + size) % size;
 		float* segment_send = &(output[segment_ends[send_chunk] -
 		   segment_sizes[send_chunk]]);
-                MPI_Send(segment_send, segment_sizes[send_chunk],
-                    datatype, send_to, send_to, global_state.comms[rank]);
-            }
-            else{
+		MPI_Send(segment_send, segment_sizes[send_chunk],
+		    datatype, send_to, send_to, global_state.comms[rank%2]);
+	    }
+	    else{
 		int recv_chunk = (rank - i - 1 + size) % size;
-                MPI_Recv(buffer, segment_sizes[recv_chunk],
-                    datatype, recv_from, rank, global_state.comms[(rank-1+size)%size], &recv_status);
+		MPI_Recv(buffer, segment_sizes[recv_chunk],
+		    datatype, recv_from, rank, global_state.comms[(rank+1)%2], &recv_status);
 		float *segment_update = &(output[segment_ends[recv_chunk] -
 		    segment_sizes[recv_chunk]]);
 		reduce(segment_update, buffer, segment_sizes[recv_chunk]);
-            }
+	    }
         }
     }
     MPI_Barrier(MPI_COMM_WORLD);
@@ -355,23 +355,24 @@ void RingAllreduce(float* data, size_t length, float** output_ptr) {
     for (size_t i = 0; i < size_t(size - 1); ++i) {
         #pragma omp parallel num_threads(2)
         {
-            if(omp_get_thread_num()==0){
+	    if((rank%2==0 && omp_get_thread_num()==0) || (rank%2==1 && omp_get_thread_num()==1)){
 		// Segment to send - at every iteration we send segment (r+1-i)
 		int send_chunk = (rank - i + 1 + size) % size;
 		float* segment_send = &(output[segment_ends[send_chunk] -
 		    segment_sizes[send_chunk]]);
 
-                MPI_Send(segment_send, segment_sizes[send_chunk],
-                    datatype, send_to, send_to, global_state.comms[rank]);
-            }
-            else{
+		MPI_Send(segment_send, segment_sizes[send_chunk],
+		    datatype, send_to, send_to, global_state.comms[rank%2]);
+	    }
+	    else{
 		// Segment to recv - at every iteration we receive segment (r-i)
 		int recv_chunk = (rank - i + size) % size;
 		float* segment_recv = &(output[segment_ends[recv_chunk] -
 		    segment_sizes[recv_chunk]]);
-                MPI_Recv(segment_recv, segment_sizes[recv_chunk],
-                    datatype, recv_from, rank, global_state.comms[(rank-1+size)%size], &recv_status);
-            }
+
+		MPI_Recv(segment_recv, segment_sizes[recv_chunk],
+		    datatype, recv_from, rank, global_state.comms[(rank+1)%2], &recv_status);
+	    }
         }
     }
     MPI_Barrier(MPI_COMM_WORLD);
