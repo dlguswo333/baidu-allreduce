@@ -10,7 +10,7 @@
 
 CC:=mpic++
 NVCC:=nvcc
-MPI_ROOT=/usr/local/mpi
+MPI_ROOT=/opt/intel/oneapi/mpi/2021.1.1
 CUDA_ROOT=/usr/local/cuda
 LDFLAGS:=-L$(CUDA_ROOT)/lib64 -L$(MPI_ROOT)/lib -lcudart -lmpi -DOMPI_SKIP_MPICXX=
 CFLAGS:=-std=c++11 -I$(MPI_ROOT)/include -I. -I$(CUDA_ROOT)/include -DOMPI_SKIP_MPICXX=
