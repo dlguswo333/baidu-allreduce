@@ -6,6 +6,7 @@
 
 #include <mpi.h>
 #include <cuda_runtime.h>
+
 #include <stdexcept>
 #include <iostream>
 #include <vector>
@@ -166,7 +167,8 @@ int main(int argc, char** argv) {
 
     // Buffer sizes used for tests.
     std::vector<size_t> buffer_sizes = {
-        1073741824 // 1 GB
+        //536870912 // 512 MB
+        805306368 // 1 GB
     };
 
     // Number of iterations to run for each buffer size.
