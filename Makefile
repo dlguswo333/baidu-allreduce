@@ -8,7 +8,7 @@
 #$(error Could not find CUDA in "$(CUDA_ROOT)")
 #endif
 
-CC:=mpiicpc
+CC:=mpicxx
 NVCC:=nvcc
 MPI_ROOT=/opt/intel/oneapi/mpi/2021.1.1
 CUDA_ROOT=/usr/local/cuda
