@@ -1,28 +1,34 @@
-printf "41\n\n" >> /data/out.txt
-for i in {1..10}
+printf "51\n\n" >> ~/single.txt
+for i in {1..20}
 do
-mpirun --allow-run-as-root -np 5 -mca btl_tcp_if_exclude eno0,eno1 -mca plm_rsh_args "-p 3333" -H localhost:4,tb3-ib:1 allreduce-test cpu >> /data/out.txt
-sleep 30s;
+mpirun --allow-run-as-root -np 6 -mca btl_tcp_if_exclude eno0,eno1 -H localhost:5,lhjtbi2:1 allreduce-test cpu >> ~/single.txt
+sleep 10s;
 done
 
-printf "32\n\n" >> /data/out.txt
-for i in {1..10}
+printf "42\n\n" >> ~/single.txt
+for i in {1..20}
 do
-mpirun --allow-run-as-root -np 5 -mca btl_tcp_if_exclude eno0,eno1 -mca plm_rsh_args "-p 3333" -H localhost:3,tb3-ib:2 allreduce-test cpu >> /data/out.txt
-sleep 30s;
+mpirun --allow-run-as-root -np 6 -mca btl_tcp_if_exclude eno0,eno1 -H localhost:4,lhjtbi2:2 allreduce-test cpu >> ~/single.txt
+sleep 10s;
 done
 
-printf "23\n\n" >> /data/out.txt
-for i in {1..10}
+printf "33\n\n" >> ~/single.txt
+for i in {1..20}
 do
-mpirun --allow-run-as-root -np 5 -mca btl_tcp_if_exclude eno0,eno1 -mca plm_rsh_args "-p 3333" -H localhost:2,tb3-ib:3 allreduce-test cpu >> /data/out.txt
-sleep 30s;
+mpirun --allow-run-as-root -np 6 -mca btl_tcp_if_exclude eno0,eno1 -H localhost:3,lhjtbi2:3 allreduce-test cpu >> ~/single.txt
+sleep 10s;
 done
 
-printf "14\n\n" >> /data/out.txt
-for i in {1..10}
+printf "24\n\n" >> ~/single.txt
+for i in {1..20}
 do
-mpirun --allow-run-as-root -np 5 -mca btl_tcp_if_exclude eno0,eno1 -mca plm_rsh_args "-p 3333" -H localhost:1,tb3-ib:4 allreduce-test cpu >> /data/out.txt
-sleep 30s;
+mpirun --allow-run-as-root -np 6 -mca btl_tcp_if_exclude eno0,eno1 -H localhost:2,lhjtbi2:4 allreduce-test cpu >> ~/single.txt
+sleep 10s;
 done
 
+printf "15\n\n" >> ~/single.txt
+for i in {1..20}
+do
+mpirun --allow-run-as-root -np 6 -mca btl_tcp_if_exclude eno0,eno1 -H localhost:1,lhjtbi2:5 allreduce-test cpu >> ~/single.txt
+sleep 10s;
+done
